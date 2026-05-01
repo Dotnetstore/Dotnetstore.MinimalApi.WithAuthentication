@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SOLUTION_PATH: Dotnetstore.MinimalApi.slnx
+  SOLUTION_PATH: Dotnetstore.MinimalApi.WithAuthentication.slnx
   TEST_PROJECT_PATH: tests/Dotnetstore.MinimalApi.Api.WebApi.Tests/Dotnetstore.MinimalApi.Api.WebApi.Tests.csproj
   COVERAGE_FILE: artifacts/coverage/coverage.cobertura.xml
   COVERAGE_REPORT_DIRECTORY: artifacts/coverage-report

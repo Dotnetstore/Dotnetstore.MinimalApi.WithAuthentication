@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SOLUTION_PATH: Dotnetstore.MinimalApi.slnx
+  SOLUTION_PATH: Dotnetstore.MinimalApi.WithAuthentication.slnx
   TEST_PROJECT_PATH: tests/Dotnetstore.MinimalApi.Api.WebApi.Tests/Dotnetstore.MinimalApi.Api.WebApi.Tests.csproj
   WEB_API_PROJECT_PATH: src/Dotnetstore.MinimalApi.Api.WebApi/Dotnetstore.MinimalApi.Api.WebApi.csproj
   PUBLISH_DIRECTORY: artifacts/publish/webapi
