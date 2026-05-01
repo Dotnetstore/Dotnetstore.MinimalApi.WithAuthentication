@@ -67,8 +67,8 @@ After renaming folders and project files, use your IDE rename/refactor tools to 
 ### 2. Restore, build, and run tests
 
 ```powershell
-dotnet restore .\Dotnetstore.MinimalApi.slnx
-dotnet build .\Dotnetstore.MinimalApi.slnx --configuration Release --no-restore
+dotnet restore .\Dotnetstore.MinimalApi.WithAuthentication.slnx
+dotnet build .\Dotnetstore.MinimalApi.WithAuthentication.slnx --configuration Release --no-restore
 dotnet run --project .\tests\Dotnetstore.MinimalApi.Api.WebApi.Tests\Dotnetstore.MinimalApi.Api.WebApi.Tests.csproj --configuration Release --no-build
 ```
 
