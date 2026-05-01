@@ -1,0 +1,7 @@
+@HostAddress = https://localhost:7201
+@ApiKey = 5CC5F891B1A44E45BCFAB72B598515CA
+
+### Request
+GET {{HostAddress}}/test/
+Accept: application/json
+X-API-KEY: {{ApiKey}}
