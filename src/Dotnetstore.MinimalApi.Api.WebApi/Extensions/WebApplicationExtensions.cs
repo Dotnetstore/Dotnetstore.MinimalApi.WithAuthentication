@@ -7,6 +7,7 @@ using Dotnetstore.MinimalApi.Api.WebApi.Filters;
 using Dotnetstore.MinimalApi.Api.WebApi.Handlers;
 using Dotnetstore.MinimalApi.Api.WebApi.OpenApi;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 using Scalar.AspNetCore;
 
 namespace Dotnetstore.MinimalApi.Api.WebApi.Extensions;
@@ -39,18 +40,20 @@ internal static class WebApplicationExtensions
             builder.SetupCors(webApiOptions);
             builder.SetupVersioning();
             builder.SetupRateLimiter(webApiOptions);
+            builder.SetupAuthentication();
 
             builder.Services
                 .AddOpenApi(options =>
                 {
-                    options.AddDocumentTransformer<TestDocumentTransformer>();
+                    options.AddDocumentTransformer<SecurityDocumentTransformer>();
                 })
                 .AddProblemDetails()
                 .AddSingleton<IWebApplicationHandlers, WebApplicationHandlers>()
                 .AddSingleton<ITestEndpoints, TestEndpoints>()
+                .AddSingleton<ISecureEndpoints, SecureEndpoints>()
                 .AddExceptionHandler<DefaultExceptionHandler>()
                 .AddScoped<ApiKeyFilter>();
-        
+
             return builder;
         }
 
@@ -139,6 +142,31 @@ internal static class WebApplicationExtensions
                 });
         }
 
+        private void SetupAuthentication()
+        {
+            builder.Services
+                .AddSingleton<IValidateOptions<EntraIdOptions>, EntraIdOptionsValidator>()
+                .AddOptions<EntraIdOptions>()
+                .Bind(builder.Configuration.GetSection(EntraIdOptions.SectionName))
+                .ValidateOnStart();
+
+            builder.Services
+                .AddAuthentication(WebApiConfiguration.EntraIdAuthenticationScheme)
+                .AddMicrosoftIdentityWebApi(
+                    builder.Configuration,
+                    configSectionName: EntraIdOptions.SectionName,
+                    jwtBearerScheme: WebApiConfiguration.EntraIdAuthenticationScheme);
+
+            builder.Services
+                .AddAuthorizationBuilder()
+                .AddPolicy(AuthorizationPolicies.CanReadTest, policy =>
+                {
+                    policy.AuthenticationSchemes = [WebApiConfiguration.EntraIdAuthenticationScheme];
+                    policy.RequireAuthenticatedUser();
+                    policy.RequireScope(Scopes.TestRead);
+                });
+        }
+
         private WebApiOptions ResolveWebApiOptions() =>
             (builder.Configuration
                 .GetSection(WebApiConfiguration.OptionsSectionName)
@@ -160,17 +188,33 @@ internal static class WebApplicationExtensions
             {
                 app
                     .MapOpenApi();
-                
+
                 var apiKeyOptions = app.Services.GetRequiredService<IOptions<ApiKeySecurityOptions>>().Value;
+                var entraIdOptions = app.Services.GetRequiredService<IOptions<EntraIdOptions>>().Value;
+                var apiScopeUri = $"api://{entraIdOptions.ClientId}/{Scopes.TestRead}";
 
                 app.MapScalarApiReference("/docs", options =>
                 {
                     options.WithTitle("Dotnetstore MinimalApi Web API");
-                    options.AddPreferredSecuritySchemes("ApiKey");
-                    options.AddApiKeyAuthentication("ApiKey", apiKey =>
+                    options.AddPreferredSecuritySchemes(
+                        WebApiConfiguration.OAuth2SecuritySchemeName,
+                        WebApiConfiguration.ApiKeySecuritySchemeName);
+                    options.AddApiKeyAuthentication(WebApiConfiguration.ApiKeySecuritySchemeName, apiKey =>
                     {
                         apiKey.Value = apiKeyOptions.Value;
                         apiKey.Name = apiKeyOptions.HeaderName;
+                    });
+                    options.AddOAuth2Authentication(WebApiConfiguration.OAuth2SecuritySchemeName, oauth =>
+                    {
+                        oauth.Flows = new ScalarFlows
+                        {
+                            AuthorizationCode = new AuthorizationCodeFlow
+                            {
+                                ClientId = entraIdOptions.ClientId,
+                                Pkce = Pkce.Sha256,
+                                SelectedScopes = [apiScopeUri]
+                            }
+                        };
                     });
                 });
             }
@@ -189,7 +233,9 @@ internal static class WebApplicationExtensions
                 .MapDefaultEndpoints()
                 .UseCors(WebApiConfiguration.CorsPolicyName)
                 .UseRateLimiter()
-                .UseExceptionHandler();
+                .UseExceptionHandler()
+                .UseAuthentication()
+                .UseAuthorization();
         
             return app;
         }

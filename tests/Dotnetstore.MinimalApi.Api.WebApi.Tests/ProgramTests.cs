@@ -3,6 +3,7 @@ using System.Text.Json;
 using Dotnetstore.MinimalApi.Api.WebApi.Tests.Helpers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shouldly;
@@ -76,10 +77,10 @@ public sealed class ProgramTests
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        document.RootElement.GetProperty("components")
-            .GetProperty("securitySchemes")
-            .TryGetProperty("ApiKey", out _)
-            .ShouldBeTrue();
+        var securitySchemes = document.RootElement.GetProperty("components")
+            .GetProperty("securitySchemes");
+        securitySchemes.TryGetProperty("ApiKey", out _).ShouldBeTrue();
+        securitySchemes.TryGetProperty("OAuth2", out _).ShouldBeTrue();
     }
 
     [Fact]
@@ -109,6 +110,15 @@ public sealed class ProgramTests
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment(environment);
+            builder.ConfigureAppConfiguration((_, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["AzureAd:Instance"] = "https://login.microsoftonline.com/",
+                    ["AzureAd:TenantId"] = "11111111-1111-1111-1111-111111111111",
+                    ["AzureAd:ClientId"] = "22222222-2222-2222-2222-222222222222"
+                });
+            });
             builder.ConfigureServices(services => configureServices?.Invoke(services));
         }
     }

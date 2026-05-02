@@ -13,6 +13,9 @@ app
 var testEndpoints = app.Services.GetRequiredService<ITestEndpoints>();
 testEndpoints.MapEndpoints(app);
 
+var secureEndpoints = app.Services.GetRequiredService<ISecureEndpoints>();
+secureEndpoints.MapEndpoints(app);
+
 await app
     .RunWebApiAsync();
 
